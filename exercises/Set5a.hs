@@ -217,7 +217,7 @@ rgb (Invert x)  = map (\value -> (-1) * value + 1 ) (rgb x)
 -- Examples:
 --   One True         ::  OneOrTwo Bool
 --   Two "cat" "dog"  ::  OneOrTwo String
-
+data OneOrTwo a = One a | Two a a 
 
 ------------------------------------------------------------------------------
 -- Ex 10: define a recursive datatype KeyVals for storing a set of
@@ -238,15 +238,16 @@ rgb (Invert x)  = map (\value -> (-1) * value + 1 ) (rgb x)
 -- Also define the functions toList and fromList that convert between
 -- KeyVals and lists of pairs.
 
-data KeyVals k v = KeyValsUndefined
+data KeyVals k v = Empty | Pair k v (KeyVals k v)
   deriving Show
 
 toList :: KeyVals k v -> [(k,v)]
-toList = todo
+toList Empty = []
+toList (Pair k v rest) = (k, v) : toList rest 
 
 fromList :: [(k,v)] -> KeyVals k v
-fromList = todo
-
+fromList []               = Empty
+fromList ( (k,v) : rest ) = Pair k v (fromList rest) 
 ------------------------------------------------------------------------------
 -- Ex 11: The data type Nat is the so called Peano
 -- representation for natural numbers. Define functions fromNat and
@@ -262,10 +263,18 @@ data Nat = Zero | PlusOne Nat
   deriving (Show,Eq)
 
 fromNat :: Nat -> Int
-fromNat n = todo
+fromNat Zero                      = 0
+fromNat (PlusOne peanoMinusOne)   = 1 + fromNat peanoMinusOne
 
 toNat :: Int -> Maybe Nat
-toNat z = todo
+toNat n 
+  | n < 0     = Nothing
+  | n == 0    = Just Zero
+  | n > 0     = Just $ toNat' n
+  where
+    toNat' :: Int -> Nat
+    toNat' 0 = Zero
+    toNat' n = PlusOne $ toNat' (n-1)
 
 ------------------------------------------------------------------------------
 -- Ex 12: While pleasingly simple in its definition, the Nat datatype is not
@@ -325,10 +334,14 @@ inc (O b) = I b
 inc (I b) = O (inc b)
 
 prettyPrint :: Bin -> String
-prettyPrint = todo
+prettyPrint End     = ""
+prettyPrint (O b)   = prettyPrint b ++ "0"  
+prettyPrint (I b)   = prettyPrint b ++ "1" 
 
 fromBin :: Bin -> Int
-fromBin = todo
+fromBin End   = 0
+fromBin (O b) = 2*fromBin b  
+fromBin (I b) = 1 + 2*fromBin b  
 
 toBin :: Int -> Bin
 toBin = todo
