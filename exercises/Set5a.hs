@@ -344,4 +344,11 @@ fromBin (O b) = 2*fromBin b
 fromBin (I b) = 1 + 2*fromBin b  
 
 toBin :: Int -> Bin
-toBin = todo
+toBin 0 = O End
+toBin n = extractDigit n 0
+  where
+    extractDigit :: Int -> Int -> Bin
+    extractDigit x digit 
+      | x == 0                     = End
+      | x `mod` (2^(digit+1)) == 0 = O $ extractDigit x (digit + 1)
+      | otherwise                  = I $ extractDigit (x - 2^digit) (digit + 1)
