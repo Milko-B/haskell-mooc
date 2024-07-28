@@ -230,4 +230,17 @@ set [] val (Node x branchL branchR) = Node val branchL branchR
 --                    (Node 5 Empty Empty))                     ==>  Just [StepL,StepR]
 
 search :: Eq a => a -> Tree a -> Maybe [Step]
-search val tree = todo
+search val Empty = Nothing
+search val (Node x branchL branchR)
+  | val == x                            = Just []
+  | not $ allValues ((/=) val) branchL  = Just $ StepL : findValue val branchL
+  | not $ allValues ((/=) val) branchR  = Just $ StepR : findValue val branchR
+  | otherwise                           = Nothing
+  
+  where
+    findValue :: Eq a => a -> Tree a -> [Step]
+    findValue val Empty = []
+    findValue val (Node x branchL branchR)
+      | val == x                            = []
+      | not $ allValues ((/=) val) branchL  = StepL : findValue val branchL
+      | not $ allValues ((/=) val) branchR  = StepR : findValue val branchR
