@@ -1,4 +1,5 @@
 -- Exercise set 6: defining classes and instances
+{-# LANGUAGE InstanceSigs #-}
 
 module Set6 where
 
@@ -13,7 +14,12 @@ data Country = Finland | Switzerland | Norway
   deriving Show
 
 instance Eq Country where
-  (==) = todo
+  (==) :: Country -> Country -> Bool
+  (==) Finland Finland = True
+  (==) Switzerland Switzerland = True
+  (==) Norway Norway = True
+  (==) _ _ = False
+   
 
 ------------------------------------------------------------------------------
 -- Ex 2: implement an Ord instance for Country so that
@@ -22,10 +28,12 @@ instance Eq Country where
 -- Remember minimal complete definitions!
 
 instance Ord Country where
-  compare = todo -- implement me?
-  (<=) = todo -- and me?
-  min = todo -- and me?
-  max = todo -- and me?
+  (<=) :: Country -> Country -> Bool
+  (<=) Finland _     = True
+  (<=) _ Switzerland = True
+  (<=) _ Finland     = False
+  (<=) Switzerland _  = False
+  (<=) country1 country2 = country1 == country2
 
 ------------------------------------------------------------------------------
 -- Ex 3: Implement an Eq instance for the type Name which contains a String.
@@ -41,7 +49,8 @@ data Name = Name String
   deriving Show
 
 instance Eq Name where
-  (==) = todo
+  (==) :: Name -> Name -> Bool
+  (==) (Name x) (Name y) = map toLower x == map toLower y  
 
 ------------------------------------------------------------------------------
 -- Ex 4: here is a list type parameterized over the type it contains.
@@ -55,7 +64,11 @@ data List a = Empty | LNode a (List a)
   deriving Show
 
 instance Eq a => Eq (List a) where
-  (==) = todo
+  (==) :: Eq a => List a -> List a -> Bool
+  (==) Empty Empty  = True
+  (==) Empty _      = False
+  (==) _ Empty      = False
+  (==) (LNode x restx) (LNode y resty) = x == y && (==) restx resty
 
 ------------------------------------------------------------------------------
 -- Ex 5: below you'll find two datatypes, Egg and Milk. Implement a
@@ -75,6 +88,17 @@ data Egg = ChickenEgg | ChocolateEgg
 data Milk = Milk Int -- amount in litres
   deriving Show
 
+class Price a where
+  price :: a -> Int
+
+instance Price Egg where
+  price :: Egg -> Int
+  price ChickenEgg = 20
+  price ChocolateEgg = 30
+
+instance Price Milk where
+  price :: Milk -> Int
+  price (Milk x) = x*15
 
 ------------------------------------------------------------------------------
 -- Ex 6: define the necessary instance hierarchy in order to be able
@@ -84,7 +108,15 @@ data Milk = Milk Int -- amount in litres
 -- price [Milk 1, Milk 2]  ==> 45
 -- price [Just ChocolateEgg, Nothing, Just ChickenEgg]  ==> 50
 -- price [Nothing, Nothing, Just (Milk 1), Just (Milk 2)]  ==> 45
+instance Price a => Price (Maybe a) where
+  price :: Price a => Maybe a -> Int
+  price Nothing   = 0
+  price (Just x)  = price x 
 
+instance Price a => Price [a] where
+  price :: Price a => [a] -> Int
+  price [] = 0
+  price xs = sum $ map price xs
 
 ------------------------------------------------------------------------------
 -- Ex 7: below you'll find the datatype Number, which is either an
