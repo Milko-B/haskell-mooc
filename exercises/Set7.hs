@@ -101,11 +101,20 @@ add x (Set list) = Set $ addToList x list
 data Event = AddEggs | AddFlour | AddSugar | Mix | Bake
   deriving (Eq,Show)
 
-data State = Start | Error | Finished
+data State = Start | Eggs | Flour | Sugar | FlourAndSugar | Mixed |Error | Finished
   deriving (Eq,Show)
 
-step = todo
-
+step :: State -> Event -> State
+step Finished event    = Finished
+step Start AddEggs     = Eggs
+step Eggs AddFlour     = Flour
+step Eggs AddSugar     = Sugar
+step Sugar AddFlour    = FlourAndSugar
+step Flour AddSugar    = FlourAndSugar
+step FlourAndSugar Mix = Mixed
+step Mixed Bake        = Finished
+step _ _               = Error
+ 
 -- do not edit this
 bake :: [Event] -> State
 bake events = go Start events
@@ -124,7 +133,7 @@ bake events = go Start events
 --   average (1.0 :| [2.0,3.0])  ==>  2.0
 
 average :: Fractional a => NonEmpty a -> a
-average = todo
+average xs = sum xs / (fromIntegral $ length xs) 
 
 ------------------------------------------------------------------------------
 -- Ex 5: reverse a NonEmpty list.
@@ -132,7 +141,8 @@ average = todo
 -- PS. The Data.List.NonEmpty type has been imported for you
 
 reverseNonEmpty :: NonEmpty a -> NonEmpty a
-reverseNonEmpty = todo
+reverseNonEmpty (x :| [])   = x :| []
+reverseNonEmpty (x :| rest) = last rest :| (reverse (init rest) ++ [x])
 
 ------------------------------------------------------------------------------
 -- Ex 6: implement Semigroup instances for the Distance, Time and
