@@ -291,17 +291,20 @@ passwordAllowed passsword (Or condition1 condition2) =
 --     ==> "(3*(1+1))"
 --
 
-data Arithmetic = Todo
+data Arithmetic = Number Integer | Operation String Arithmetic Arithmetic
   deriving Show
 
 literal :: Integer -> Arithmetic
-literal = todo
+literal n = Number n
 
 operation :: String -> Arithmetic -> Arithmetic -> Arithmetic
-operation = todo
+operation symbol x y = Operation symbol x y  
 
 evaluate :: Arithmetic -> Integer
-evaluate = todo
+evaluate (Number n) = n
+evaluate (Operation "+" x y)  = evaluate x + evaluate y
+evaluate (Operation "*" x y ) = evaluate x * evaluate y
 
 render :: Arithmetic -> String
-render = todo
+render (Number n) = show n
+render (Operation symbol x y) = "(" ++ render x ++ symbol ++ render y ++ ")"  
