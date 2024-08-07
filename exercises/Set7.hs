@@ -153,7 +153,14 @@ reverseNonEmpty (x :| rest) = last rest :| (reverse (init rest) ++ [x])
 --
 -- velocity (Distance 50 <> Distance 10) (Time 1 <> Time 2)
 --    ==> Velocity 20
+instance Semigroup Distance where
+  (<>) (Distance d1) (Distance d2) = Distance $ d1 + d2
 
+instance Semigroup Time where
+  (<>) (Time t1) (Time t2) = Time $ t1 + t2
+
+instance Semigroup Velocity where
+  (<>) (Velocity v1) (Velocity v2) = Velocity $ v1 + v2
 
 ------------------------------------------------------------------------------
 -- Ex 7: implement a Monoid instance for the Set type from exercise 2.
@@ -162,7 +169,11 @@ reverseNonEmpty (x :| rest) = last rest :| (reverse (init rest) ++ [x])
 -- What's the right definition for mempty?
 --
 -- What are the class constraints for the instances?
-
+instance (Eq a, Ord a) => Semigroup (Set a) where
+  (<>) (Set x) (Set y) = foldr add (Set y) x
+  
+instance (Eq a, Ord a) => Monoid (Set a) where
+  mempty = emptySet
 
 ------------------------------------------------------------------------------
 -- Ex 8: below you'll find two different ways of representing
@@ -185,28 +196,43 @@ reverseNonEmpty (x :| rest) = last rest :| (reverse (init rest) ++ [x])
 
 data Operation1 = Add1 Int Int
                 | Subtract1 Int Int
+                | Multiply1 Int Int
   deriving Show
 
 compute1 :: Operation1 -> Int
 compute1 (Add1 i j) = i+j
 compute1 (Subtract1 i j) = i-j
+compute1 (Multiply1 i j) = i*j
 
 show1 :: Operation1 -> String
-show1 = todo
+show1 (Add1 x y) = show x ++ "+" ++ show y 
+show1 (Subtract1 x y) = show x ++ "-" ++ show y
+show1 (Multiply1 x y) = show x ++ "*" ++ show y
 
 data Add2 = Add2 Int Int
   deriving Show
 data Subtract2 = Subtract2 Int Int
   deriving Show
+data Multiply2 = Multiply2 Int Int
+  deriving Show
+
 
 class Operation2 op where
   compute2 :: op -> Int
+  show2 :: op -> String 
 
 instance Operation2 Add2 where
   compute2 (Add2 i j) = i+j
+  show2 (Add2 x y) = show x ++ "+" ++ show y
 
 instance Operation2 Subtract2 where
   compute2 (Subtract2 i j) = i-j
+  show2 (Subtract2 x y) = show x ++ "-" ++ show y
+
+
+instance Operation2 Multiply2 where
+  compute2 (Multiply2 i j) = i * j
+  show2 (Multiply2 x y) = show x ++ "*" ++ show y
 
 
 ------------------------------------------------------------------------------
@@ -236,7 +262,14 @@ data PasswordRequirement =
   deriving Show
 
 passwordAllowed :: String -> PasswordRequirement -> Bool
-passwordAllowed = todo
+passwordAllowed password (MinimumLength n)   = length password >= n
+passwordAllowed password (ContainsSome xs)   = length (intersect password xs) /= 0  
+passwordAllowed password (DoesNotContain xs) = length (intersect password xs) == 0
+passwordAllowed passsword (And condition1 condition2) = 
+  passwordAllowed passsword condition1 && passwordAllowed passsword condition2
+passwordAllowed passsword (Or condition1 condition2) = 
+  passwordAllowed passsword condition1 || passwordAllowed passsword condition2 
+ 
 
 ------------------------------------------------------------------------------
 -- Ex 10: a DSL for simple arithmetic expressions with addition and
