@@ -133,7 +133,13 @@ renderListExample = renderList justADot (9,11) (9,11)
 --      ["000000","000000","000000"]]
 
 dotAndLine :: Picture
-dotAndLine = todo
+dotAndLine = Picture f
+  where
+    f :: Coord -> Color
+    f (Coord 3 4) = white
+    f (Coord _ 8) = pink
+    f _           = black
+
 ------------------------------------------------------------------------------
 
 ------------------------------------------------------------------------------
@@ -166,10 +172,10 @@ dotAndLine = todo
 --          ["7f0000","7f0000","7f0000"]]
 
 blendColor :: Color -> Color -> Color
-blendColor = todo
+blendColor (Color r1 g1 b1) (Color r2 g2 b2) = Color ((r1+r2) `div` 2) ((g1+g2) `div` 2) ((b1+b2) `div` 2) 
 
 combine :: (Color -> Color -> Color) -> Picture -> Picture -> Picture
-combine = todo
+combine f (Picture p1) (Picture p2) = Picture ( \coord -> f (p1 coord) (p2 coord) )
 
 ------------------------------------------------------------------------------
 
@@ -240,7 +246,10 @@ exampleCircle = fill red (circle 80 100 200)
 --        ["000000","000000","000000","000000","000000","000000"]]
 
 rectangle :: Int -> Int -> Int -> Int -> Shape
-rectangle x0 y0 w h = todo
+rectangle x0 y0 w h = Shape f
+  where
+    f (Coord x y) = x0 <= x && x < x0 + w && y0 <= y && y < y0 + h
+    
 ------------------------------------------------------------------------------
 
 ------------------------------------------------------------------------------
@@ -256,10 +265,12 @@ rectangle x0 y0 w h = todo
 -- shape.
 
 union :: Shape -> Shape -> Shape
-union = todo
+union (Shape f) (Shape g) = Shape f_or_g
+  where f_or_g coord = f coord || g coord 
 
 cut :: Shape -> Shape -> Shape
-cut = todo
+cut (Shape f) (Shape g) = Shape f_and_g
+  where f_and_g coord = f coord && (not $ g coord) 
 ------------------------------------------------------------------------------
 
 -- Here's a snowman, built using union from circles and rectangles.
@@ -287,7 +298,11 @@ exampleSnowman = fill white snowman
 --        ["000000","000000","000000"]]
 
 paintSolid :: Color -> Shape -> Picture -> Picture
-paintSolid color shape base = todo
+paintSolid color (Shape new_shape) (Picture base) = Picture base_with_shape
+  where
+    base_with_shape coord
+      | new_shape coord = color
+      | otherwise       = base coord
 ------------------------------------------------------------------------------
 
 allWhite :: Picture
@@ -332,7 +347,12 @@ stripes a b = Picture f
 --       ["000000","000000","000000","000000","000000"]]
 
 paint :: Picture -> Shape -> Picture -> Picture
-paint pat shape base = todo
+paint (Picture pattern) (Shape shape) (Picture base) = Picture base_with_pattern_shape 
+    where 
+    base_with_pattern_shape coord
+      | shape coord     = pattern coord
+      | otherwise       = base coord
+  
 ------------------------------------------------------------------------------
 
 -- Here's a patterned version of the snowman example. See it by running:
