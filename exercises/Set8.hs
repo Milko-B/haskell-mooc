@@ -415,19 +415,20 @@ xy = Picture f
 data Fill = Fill Color
 
 instance Transform Fill where
-  apply = todo
+  apply (Fill color) picture = Picture $ const color 
 
 data Zoom = Zoom Int
   deriving Show
 
 instance Transform Zoom where
-  apply = todo
+  apply (Zoom n) picture = zoom n picture
 
 data Flip = FlipX | FlipY | FlipXY
   deriving Show
 
 instance Transform Flip where
   apply = todo
+
 ------------------------------------------------------------------------------
 
 ------------------------------------------------------------------------------
