@@ -427,7 +427,15 @@ data Flip = FlipX | FlipY | FlipXY
   deriving Show
 
 instance Transform Flip where
-  apply = todo
+  apply FlipX (Picture p) = Picture p_x_flipped
+    where
+      p_x_flipped (Coord x y) = p (Coord (-x) y) 
+  
+  apply FlipY (Picture p) = Picture p_y_flipped
+    where
+      p_y_flipped (Coord x y) = p (Coord x (-y))
+
+  apply FlipXY picture = flipXY picture
 
 ------------------------------------------------------------------------------
 
@@ -443,8 +451,8 @@ instance Transform Flip where
 data Chain a b = Chain a b
   deriving Show
 
-instance Transform (Chain a b) where
-  apply = todo
+instance (Transform a, Transform b) => Transform (Chain a b) where
+  apply (Chain t1 t2) picture = apply t1 $ apply t2 picture
 ------------------------------------------------------------------------------
 
 -- Now we can redefine largeVerticalStripes using the above Transforms.
@@ -482,7 +490,17 @@ data Blur = Blur
   deriving Show
 
 instance Transform Blur where
-  apply = todo
+  apply Blur (Picture p) = Picture p_blurred
+    where
+      average_color :: [Color] -> Color
+      average_color []           = white
+      average_color [x]          = x
+      average_color colors = Color (div (sum $ map getRed colors) (length colors) ) 
+                                   (div (sum $ map getGreen colors) (length colors) )
+                                   (div (sum $ map getBlue colors) (length colors) )
+
+      p_blurred :: Coord -> Color
+      p_blurred (Coord x y) = average_color [p $ Coord x y, p $ Coord (x + 1) y, p $ Coord (x - 1) y, p $ Coord x (y + 1), p $ Coord x (y - 1)]
 ------------------------------------------------------------------------------
 
 ------------------------------------------------------------------------------
@@ -500,7 +518,9 @@ data BlurMany = BlurMany Int
   deriving Show
 
 instance Transform BlurMany where
-  apply = todo
+  apply (BlurMany 0) picture = picture
+  apply (BlurMany n) picture = apply (BlurMany (n-1)) $ apply Blur picture
+   
 ------------------------------------------------------------------------------
 
 -- Here's a blurred version of our original snowman. See it by running
