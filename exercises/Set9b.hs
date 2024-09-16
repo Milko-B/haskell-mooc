@@ -103,7 +103,7 @@ nextCol (i,j) = (i, j+1)
 type Size = Int
 
 prettyPrint :: Size -> [Coord] -> String
-prettyPrint = todo
+prettyPrint n list_coord = todo
 
 --------------------------------------------------------------------------------
 -- Ex 3: The task in this exercise is to define the relations sameRow, sameCol,
@@ -127,16 +127,16 @@ prettyPrint = todo
 --   sameAntidiag (500,5) (5,500) ==> True
 
 sameRow :: Coord -> Coord -> Bool
-sameRow (i,j) (k,l) = todo
+sameRow (i,j) (k,l) = i == k
 
 sameCol :: Coord -> Coord -> Bool
-sameCol (i,j) (k,l) = todo
+sameCol (i,j) (k,l) = j == l
 
 sameDiag :: Coord -> Coord -> Bool
-sameDiag (i,j) (k,l) = todo
+sameDiag (i,j) (k,l) = (i - j) == (k - l)
 
 sameAntidiag :: Coord -> Coord -> Bool
-sameAntidiag (i,j) (k,l) = todo
+sameAntidiag (i,j) (k,l) = i + j == k + l 
 
 --------------------------------------------------------------------------------
 -- Ex 4: In chess, a queen may capture another piece in the same row, column,
@@ -191,7 +191,10 @@ type Candidate = Coord
 type Stack     = [Coord]
 
 danger :: Candidate -> Stack -> Bool
-danger = todo
+danger candidate []       = False
+danger candidate (x:rest) = if current_check then True else danger candidate rest
+    where
+        current_check = sameRow candidate x || sameCol candidate x || sameDiag candidate x || sameAntidiag candidate x
 
 --------------------------------------------------------------------------------
 -- Ex 5: In this exercise, the task is to write a modified version of
@@ -271,7 +274,9 @@ prettyPrint2 = todo
 --     Q#######
 
 fixFirst :: Size -> Stack -> Maybe Stack
-fixFirst n s = todo
+fixFirst n (queen:rest)
+    | fst queen > n || snd queen > n = Nothing
+    | otherwise = if danger queen rest then fixFirst n ((fst queen, snd queen + 1):rest) else Just $ (fst queen, snd queen):rest
 
 --------------------------------------------------------------------------------
 -- Ex 7: We need two helper functions for stack management.
