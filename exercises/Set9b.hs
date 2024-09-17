@@ -3,6 +3,7 @@ module Set9b where
 import Mooc.Todo
 
 import Data.List
+import Control.Monad.Fix (fix)
 
 --------------------------------------------------------------------------------
 -- Ex 1: In this exercise set, we'll solve the N Queens problem step by step.
@@ -103,7 +104,7 @@ nextCol (i,j) = (i, j+1)
 type Size = Int
 
 prettyPrint :: Size -> [Coord] -> String
-prettyPrint n list_coord = todo
+prettyPrint = todo
 
 --------------------------------------------------------------------------------
 -- Ex 3: The task in this exercise is to define the relations sameRow, sameCol,
@@ -298,10 +299,13 @@ fixFirst n (queen:rest)
 -- Hint: Remember nextRow and nextCol? Use them!
 
 continue :: Stack -> Stack
-continue s = todo
+continue []                = [(1,1)]
+continue (last_queen:rest) = nextRow last_queen:last_queen:rest
 
 backtrack :: Stack -> Stack
-backtrack s = todo
+backtrack []                    = []
+backtrack [last_queen]          = []
+backtrack (last:new_last:rest)  = nextCol new_last : rest
 
 --------------------------------------------------------------------------------
 -- Ex 8: Let's take a step. Our algorithm solves the problem (in a
@@ -370,7 +374,9 @@ backtrack s = todo
 --     step 8 [(6,1),(5,4),(4,2),(3,5),(2,3),(1,1)] ==> [(5,5),(4,2),(3,5),(2,3),(1,1)]
 
 step :: Size -> Stack -> Stack
-step = todo
+step n [] = [(1,1)]
+step n stack = case fixFirst n stack of  Nothing          -> backtrack stack
+                                         Just new_stack   -> continue new_stack
 
 --------------------------------------------------------------------------------
 -- Ex 9: Let's solve our puzzle! The function finish takes a partial
@@ -385,7 +391,7 @@ step = todo
 -- solve the n queens problem.
 
 finish :: Size -> Stack -> Stack
-finish = todo
+finish n stack = if length stack > n then tail stack else finish n $ step n stack
 
 solve :: Size -> Stack
 solve n = finish n [(1,1)]
