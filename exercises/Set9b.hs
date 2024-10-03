@@ -3,6 +3,7 @@ module Set9b where
 import Mooc.Todo
 
 import Data.List
+import Control.Monad.Fix (fix)
 
 --------------------------------------------------------------------------------
 -- Ex 1: In this exercise set, we'll solve the N Queens problem step by step.
@@ -47,10 +48,10 @@ type Col   = Int
 type Coord = (Row, Col)
 
 nextRow :: Coord -> Coord
-nextRow (i,j) = todo
+nextRow (i,j) = (i+1, 1)
 
 nextCol :: Coord -> Coord
-nextCol (i,j) = todo
+nextCol (i,j) = (i, j+1)
 
 --------------------------------------------------------------------------------
 -- Ex 2: Implement the function prettyPrint that, given the size of
@@ -103,7 +104,21 @@ nextCol (i,j) = todo
 type Size = Int
 
 prettyPrint :: Size -> [Coord] -> String
-prettyPrint = todo
+prettyPrint n coords_queens = 
+    printNext n (1,1) (sort coords_queens)
+
+    where
+        printNext :: Size -> Coord -> [Coord] -> String
+        printNext n (x,y) []
+            | x > n     = ""                                        -- Stop when we pass the last row
+            | y == n+1  = "\n" ++ printNext n (nextRow (x,y)) []    -- Print "\n" when encountering the end of the row
+            | otherwise = "."  ++ printNext n (nextCol (x,y)) []    -- Print "." in all other cases
+
+        printNext n (x,y) (next_queen : rest)
+            | n < x     = ""                                                        -- Stop when we pass the last row           
+            | y == n+1  = "\n" ++ printNext n (nextRow (x,y)) (next_queen : rest)   -- Print "\n" when encountering the end of the row
+            | (x,y) == next_queen = "Q" ++ printNext n (nextCol (x,y)) rest         -- Print "Q" when ecnountering a queen    
+            | otherwise = "." ++ printNext n (nextCol (x,y)) (next_queen : rest)    -- Print "." in all other cases
 
 --------------------------------------------------------------------------------
 -- Ex 3: The task in this exercise is to define the relations sameRow, sameCol,
@@ -127,16 +142,16 @@ prettyPrint = todo
 --   sameAntidiag (500,5) (5,500) ==> True
 
 sameRow :: Coord -> Coord -> Bool
-sameRow (i,j) (k,l) = todo
+sameRow (i,j) (k,l) = i == k
 
 sameCol :: Coord -> Coord -> Bool
-sameCol (i,j) (k,l) = todo
+sameCol (i,j) (k,l) = j == l
 
 sameDiag :: Coord -> Coord -> Bool
-sameDiag (i,j) (k,l) = todo
+sameDiag (i,j) (k,l) = (i - j) == (k - l)
 
 sameAntidiag :: Coord -> Coord -> Bool
-sameAntidiag (i,j) (k,l) = todo
+sameAntidiag (i,j) (k,l) = i + j == k + l 
 
 --------------------------------------------------------------------------------
 -- Ex 4: In chess, a queen may capture another piece in the same row, column,
@@ -191,7 +206,10 @@ type Candidate = Coord
 type Stack     = [Coord]
 
 danger :: Candidate -> Stack -> Bool
-danger = todo
+danger candidate []       = False
+danger candidate (x:rest) = if current_check then True else danger candidate rest
+    where
+        current_check = sameRow candidate x || sameCol candidate x || sameDiag candidate x || sameAntidiag candidate x
 
 --------------------------------------------------------------------------------
 -- Ex 5: In this exercise, the task is to write a modified version of
@@ -225,8 +243,24 @@ danger = todo
 -- (For those that did the challenge in exercise 2, there's probably no O(n^2)
 -- solution to this version. Any working solution is okay in this exercise.)
 
-prettyPrint2 :: Size -> Stack -> String
-prettyPrint2 = todo
+prettyPrint2 :: Size -> [Coord] -> String
+prettyPrint2 n coords_queens = 
+    printNext n (1,1) (sort coords_queens) coords_queens
+
+    where
+        printNext :: Size -> Coord -> [Coord] -> [Coord] -> String
+        printNext n (x,y) [] queens
+            | x > n                = ""                                               -- Stop when we pass the last row
+            | y == n+1             = "\n" ++ printNext n (nextRow (x,y)) [] queens    -- Print "\n" when encountering the end of the row
+            | danger (x,y) queens  = "#"  ++ printNext n (nextCol (x,y)) [] queens    -- Print "#" when in dangerzone
+            | otherwise            = "."  ++ printNext n (nextCol (x,y)) [] queens    -- Print "." in all other cases
+
+        printNext n (x,y) (next_queen : rest) queens
+            | n < x                = ""                                                               -- Stop when we pass the last row           
+            | y == n+1             = "\n" ++ printNext n (nextRow (x,y)) (next_queen : rest) queens   -- Print "\n" when encountering the end of the row
+            | (x,y) == next_queen  = "Q" ++ printNext n (nextCol (x,y)) rest queens                   -- Print "Q" when ecnountering a queen    
+            | danger  (x,y) queens = "#" ++ printNext n (nextCol (x,y)) (next_queen : rest) queens    -- Print "#" when in dangerzone
+            | otherwise            = "." ++ printNext n (nextCol (x,y)) (next_queen : rest) queens    -- Print "." in all other cases
 
 --------------------------------------------------------------------------------
 -- Ex 6: Now that we can check if a piece can be safely placed into a square in
@@ -271,7 +305,9 @@ prettyPrint2 = todo
 --     Q#######
 
 fixFirst :: Size -> Stack -> Maybe Stack
-fixFirst n s = todo
+fixFirst n (queen:rest)
+    | fst queen > n || snd queen > n = Nothing
+    | otherwise = if danger queen rest then fixFirst n ((fst queen, snd queen + 1):rest) else Just $ (fst queen, snd queen):rest
 
 --------------------------------------------------------------------------------
 -- Ex 7: We need two helper functions for stack management.
@@ -293,10 +329,13 @@ fixFirst n s = todo
 -- Hint: Remember nextRow and nextCol? Use them!
 
 continue :: Stack -> Stack
-continue s = todo
+continue []                = [(1,1)]
+continue (last_queen:rest) = nextRow last_queen:last_queen:rest
 
 backtrack :: Stack -> Stack
-backtrack s = todo
+backtrack []                    = []
+backtrack [last_queen]          = []
+backtrack (last:new_last:rest)  = nextCol new_last : rest
 
 --------------------------------------------------------------------------------
 -- Ex 8: Let's take a step. Our algorithm solves the problem (in a
@@ -365,7 +404,9 @@ backtrack s = todo
 --     step 8 [(6,1),(5,4),(4,2),(3,5),(2,3),(1,1)] ==> [(5,5),(4,2),(3,5),(2,3),(1,1)]
 
 step :: Size -> Stack -> Stack
-step = todo
+step n [] = [(1,1)]
+step n stack = case fixFirst n stack of  Nothing          -> backtrack stack
+                                         Just new_stack   -> continue new_stack
 
 --------------------------------------------------------------------------------
 -- Ex 9: Let's solve our puzzle! The function finish takes a partial
@@ -380,7 +421,7 @@ step = todo
 -- solve the n queens problem.
 
 finish :: Size -> Stack -> Stack
-finish = todo
+finish n stack = if length stack > n then tail stack else finish n $ step n stack
 
 solve :: Size -> Stack
 solve n = finish n [(1,1)]
