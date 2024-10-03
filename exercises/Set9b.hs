@@ -104,7 +104,21 @@ nextCol (i,j) = (i, j+1)
 type Size = Int
 
 prettyPrint :: Size -> [Coord] -> String
-prettyPrint = todo
+prettyPrint n coords_queens = 
+    printNext n (1,1) (sort coords_queens)
+
+    where
+        printNext :: Size -> Coord -> [Coord] -> String
+        printNext n (x,y) []
+            | x > n     = ""                                        -- Stop when we pass the last row
+            | y == n+1  = "\n" ++ printNext n (nextRow (x,y)) []    -- Print "\n" when encountering the end of the row
+            | otherwise = "."  ++ printNext n (nextCol (x,y)) []    -- Print "." in all other cases
+
+        printNext n (x,y) (next_queen : rest)
+            | n < x     = ""                                                        -- Stop when we pass the last row           
+            | y == n+1  = "\n" ++ printNext n (nextRow (x,y)) (next_queen : rest)   -- Print "\n" when encountering the end of the row
+            | (x,y) == next_queen = "Q" ++ printNext n (nextCol (x,y)) rest         -- Print "Q" when ecnountering a queen    
+            | otherwise = "." ++ printNext n (nextCol (x,y)) (next_queen : rest)    -- Print "." in all other cases
 
 --------------------------------------------------------------------------------
 -- Ex 3: The task in this exercise is to define the relations sameRow, sameCol,
@@ -229,8 +243,24 @@ danger candidate (x:rest) = if current_check then True else danger candidate res
 -- (For those that did the challenge in exercise 2, there's probably no O(n^2)
 -- solution to this version. Any working solution is okay in this exercise.)
 
-prettyPrint2 :: Size -> Stack -> String
-prettyPrint2 = todo
+prettyPrint2 :: Size -> [Coord] -> String
+prettyPrint2 n coords_queens = 
+    printNext n (1,1) (sort coords_queens) coords_queens
+
+    where
+        printNext :: Size -> Coord -> [Coord] -> [Coord] -> String
+        printNext n (x,y) [] queens
+            | x > n                = ""                                               -- Stop when we pass the last row
+            | y == n+1             = "\n" ++ printNext n (nextRow (x,y)) [] queens    -- Print "\n" when encountering the end of the row
+            | danger (x,y) queens  = "#"  ++ printNext n (nextCol (x,y)) [] queens    -- Print "#" when in dangerzone
+            | otherwise            = "."  ++ printNext n (nextCol (x,y)) [] queens    -- Print "." in all other cases
+
+        printNext n (x,y) (next_queen : rest) queens
+            | n < x                = ""                                                               -- Stop when we pass the last row           
+            | y == n+1             = "\n" ++ printNext n (nextRow (x,y)) (next_queen : rest) queens   -- Print "\n" when encountering the end of the row
+            | (x,y) == next_queen  = "Q" ++ printNext n (nextCol (x,y)) rest queens                   -- Print "Q" when ecnountering a queen    
+            | danger  (x,y) queens = "#" ++ printNext n (nextCol (x,y)) (next_queen : rest) queens    -- Print "#" when in dangerzone
+            | otherwise            = "." ++ printNext n (nextCol (x,y)) (next_queen : rest) queens    -- Print "." in all other cases
 
 --------------------------------------------------------------------------------
 -- Ex 6: Now that we can check if a piece can be safely placed into a square in
