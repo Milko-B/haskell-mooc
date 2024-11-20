@@ -123,7 +123,8 @@ inBoth structure1 structure2 = [x | x <- toList structure1, x `elem` toList stru
 --   length (LNode 1 (LNode 2 (LNode 3 Empty))) ==> 3
 
 instance Foldable List where
-  foldl f value Empty = todo
+  foldr f value Empty           = value
+  foldr f value (LNode x rest)  = f x (foldr f value rest) 
 
 ------------------------------------------------------------------------------
 -- Ex 9: Implement the instance Foldable TwoList.
@@ -133,7 +134,8 @@ instance Foldable List where
 --   length (TwoNode 0 1 (TwoNode 2 3 TwoEmpty)) ==> 4
 
 instance Foldable TwoList where
-  foldr = todo
+  foldr f value TwoEmpty           = value
+  foldr f value (TwoNode x y rest) = f x (f y $ foldr f value rest)
 
 ------------------------------------------------------------------------------
 -- Ex 10: (Tricky!) Fun a is a type that wraps a function Int -> a.
@@ -148,6 +150,7 @@ runFun :: Fun a -> Int -> a
 runFun (Fun f) x = f x
 
 instance Functor Fun where
+  fmap g (Fun f) = Fun (g.f)
 
 ------------------------------------------------------------------------------
 -- Ex 11: (Tricky!) You'll find the binary tree type from Set 5b
@@ -204,10 +207,12 @@ data Tree a = Leaf | Node a (Tree a) (Tree a)
   deriving Show
 
 instance Functor Tree where
-  fmap = todo
+  fmap f Leaf = Leaf
+  fmap f (Node x branch1 branch2) = Node (f x) (fmap f branch1) (fmap f branch2)
 
 sumTree :: Monoid m => Tree m -> m
-sumTree = todo
+sumTree Leaf                     = mempty
+sumTree (Node x branch1 branch2) = sumTree branch1  <> x <> sumTree branch2
 
 instance Foldable Tree where
   foldMap f t = sumTree (fmap f t)
