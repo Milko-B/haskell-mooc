@@ -88,7 +88,11 @@ checkCapitals (for,sur) = if length (filter (not.isUpper)  [head for, head sur])
 --     ==> Just "a"
 
 winner :: [(String,Int)] -> String -> String -> Maybe String
-winner scores player1 player2 = todo
+winner scores player1 player2 = 
+  lookup player1 scores >>= compareToPlayer2
+  where
+    compareToPlayer2 :: Int -> Maybe String
+    compareToPlayer2 x = lookup player2 scores >>= (\y -> if x >= y then Just player1 else Just player2)
 
 ------------------------------------------------------------------------------
 -- Ex 3: given a list of indices and a list of values, return the sum
@@ -106,8 +110,16 @@ winner scores player1 player2 = todo
 --    Nothing
 
 selectSum :: Num a => [a] -> [Int] -> Maybe a
-selectSum xs is = todo
+selectSum xs []           = Just 0
+selectSum [] is           = Nothing
+selectSum xs is           = safeSum $ map (safeIndex xs) is 
+  where 
+    safeIndex :: [a] -> Int -> Maybe a
+    safeIndex list index = if index >= 0 && index < length list then Just (list!!index) else Nothing 
 
+    safeSum :: Num a => [Maybe a] -> Maybe a
+    safeSum []       = Just 0
+    safeSum (x:rest) = x >>= \value -> fmap (+ value) (safeSum rest)
 ------------------------------------------------------------------------------
 -- Ex 4: Here is the Logger monad from the course material. Implement
 -- the operation countAndLog which produces the number of elements
