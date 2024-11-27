@@ -152,7 +152,8 @@ instance Applicative Logger where
   (<*>) = ap
 
 countAndLog :: Show a => (a -> Bool) -> [a] -> Logger Int
-countAndLog = todo
+countAndLog check []       = Logger [] 0
+countAndLog check (x:rest) = if check x then countAndLog check rest >>= \y -> Logger [show x] (y + 1)  else countAndLog check rest 
 
 ------------------------------------------------------------------------------
 -- Ex 5: You can find the Bank and BankOp code from the course
@@ -169,8 +170,11 @@ exampleBank :: Bank
 exampleBank = (Bank (Map.fromList [("harry",10),("cedric",7),("ginny",1)]))
 
 balance :: String -> BankOp Int
-balance accountName = todo
-
+balance accountName = BankOp $ \bank -> (returnBalance bank accountName, bank)
+  where
+    returnBalance :: Bank -> String -> Int
+    returnBalance (Bank records) name = case Map.lookup name records of Nothing -> 0
+                                                                        Just x  -> x
 ------------------------------------------------------------------------------
 -- Ex 6: Using the operations balance, withdrawOp and depositOp, and
 -- chaining (+>), implement the BankOp rob, which transfers all the
@@ -187,7 +191,7 @@ balance accountName = todo
 --     ==> ((),Bank (fromList [("cedric",7),("ginny",1),("harry",10)]))
 
 rob :: String -> String -> BankOp ()
-rob from to = todo
+rob from to = balance from +> withdrawOp from +> depositOp to
 
 ------------------------------------------------------------------------------
 -- Ex 7: using the State monad, write the operation `update` that first
