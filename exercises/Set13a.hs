@@ -1,4 +1,5 @@
 {-# OPTIONS_GHC -Wno-noncanonical-monad-instances #-} -- this silences an uninteresting warning
+{-# HLINT ignore "Use head" #-}
 
 module Set13a where
 
@@ -88,7 +89,7 @@ checkCapitals (for,sur) = if length (filter (not.isUpper)  [head for, head sur])
 --     ==> Just "a"
 
 winner :: [(String,Int)] -> String -> String -> Maybe String
-winner scores player1 player2 = 
+winner scores player1 player2 =
   lookup player1 scores >>= compareToPlayer2
   where
     compareToPlayer2 :: Int -> Maybe String
@@ -112,10 +113,10 @@ winner scores player1 player2 =
 selectSum :: Num a => [a] -> [Int] -> Maybe a
 selectSum xs []           = Just 0
 selectSum [] is           = Nothing
-selectSum xs is           = safeSum $ map (safeIndex xs) is 
-  where 
+selectSum xs is           = safeSum $ map (safeIndex xs) is
+  where
     safeIndex :: [a] -> Int -> Maybe a
-    safeIndex list index = if index >= 0 && index < length list then Just (list!!index) else Nothing 
+    safeIndex list index = if index >= 0 && index < length list then Just (list!!index) else Nothing
 
     safeSum :: Num a => [Maybe a] -> Maybe a
     safeSum []       = Just 0
@@ -153,7 +154,7 @@ instance Applicative Logger where
 
 countAndLog :: Show a => (a -> Bool) -> [a] -> Logger Int
 countAndLog check []       = Logger [] 0
-countAndLog check (x:rest) = if check x then countAndLog check rest >>= \y -> Logger [show x] (y + 1)  else countAndLog check rest 
+countAndLog check (x:rest) = if check x then countAndLog check rest >>= \y -> Logger [show x] (y + 1)  else countAndLog check rest
 
 ------------------------------------------------------------------------------
 -- Ex 5: You can find the Bank and BankOp code from the course
@@ -167,7 +168,7 @@ countAndLog check (x:rest) = if check x then countAndLog check rest >>= \y -> Lo
 -- from Data.Map are available under the prefix Map.
 
 exampleBank :: Bank
-exampleBank = (Bank (Map.fromList [("harry",10),("cedric",7),("ginny",1)]))
+exampleBank = Bank (Map.fromList [("harry",10),("cedric",7),("ginny",1)])
 
 balance :: String -> BankOp Int
 balance accountName = BankOp $ \bank -> (returnBalance bank accountName, bank)
@@ -203,7 +204,7 @@ rob from to = balance from +> withdrawOp from +> depositOp to
 --    ==> ((),7)
 
 update :: State Int ()
-update = todo
+update = state (\x -> ((), x*2+1))
 
 ------------------------------------------------------------------------------
 -- Ex 8: Checking that parentheses are balanced with the State monad.
@@ -231,7 +232,12 @@ update = todo
 --   parensMatch "(()))("      ==> False
 
 paren :: Char -> State Int ()
-paren = todo
+paren x = do
+  old_value <- get
+  if old_value == -1 then put (-1) else case x of '('       -> put (old_value + 1)
+                                                  ')'       -> put (old_value - 1)
+                                                  otherwise -> put old_value
+
 
 parensMatch :: String -> Bool
 parensMatch s = count == 0
@@ -262,7 +268,13 @@ parensMatch s = count == 0
 -- PS. The order of the list of pairs doesn't matter
 
 count :: Eq a => a -> State [(a,Int)] ()
-count x = todo
+count x = do
+  current_count <- get
+  let keys = map fst current_count
+  if x `elem` keys then put (addToCount x current_count) else put ((x, 1):current_count)
+    where
+      addToCount :: Eq a => a -> [(a, Int)] -> [(a, Int)]
+      addToCount x list = map (\pair -> if fst pair == x then (fst pair, snd pair + 1) else pair) list
 
 ------------------------------------------------------------------------------
 -- Ex 10: Implement the operation occurrences, which
