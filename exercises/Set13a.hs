@@ -1,4 +1,6 @@
 {-# OPTIONS_GHC -Wno-noncanonical-monad-instances #-} -- this silences an uninteresting warning
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Use head" #-}
 
 module Set13a where
 
@@ -47,19 +49,21 @@ readNames s =
 -- (NB! There are obviously other corner cases like the inputs " " and
 -- "a b c", but you don't need to worry about those here)
 split :: String -> Maybe (String,String)
-split = todo
+split full_name = case length $ words full_name of
+  2 -> Just $ (words full_name!!0 ,words full_name!!1 )
+  otherwise -> Nothing
 
 -- checkNumber should take a pair of two strings and return them
 -- unchanged if they don't contain numbers. Otherwise Nothing is
 -- returned.
 checkNumber :: (String, String) -> Maybe (String, String)
-checkNumber = todo
+checkNumber (first, second) = if length (filter isNumber (first ++ second)) == 0 then Just (first, second) else Nothing
 
 -- checkCapitals should take a pair of two strings and return them
 -- unchanged if both start with a capital letter. Otherwise Nothing is
 -- returned.
 checkCapitals :: (String, String) -> Maybe (String, String)
-checkCapitals (for,sur) = todo
+checkCapitals (for,sur) = if length (filter (not.isUpper)  [head for, head sur]) == 0 then Just (for, sur) else Nothing
 
 ------------------------------------------------------------------------------
 -- Ex 2: Given a list of players and their scores (as [(String,Int)]),
@@ -86,7 +90,11 @@ checkCapitals (for,sur) = todo
 --     ==> Just "a"
 
 winner :: [(String,Int)] -> String -> String -> Maybe String
-winner scores player1 player2 = todo
+winner scores player1 player2 =
+  lookup player1 scores >>= compareToPlayer2
+  where
+    compareToPlayer2 :: Int -> Maybe String
+    compareToPlayer2 x = lookup player2 scores >>= (\y -> if x >= y then Just player1 else Just player2)
 
 ------------------------------------------------------------------------------
 -- Ex 3: given a list of indices and a list of values, return the sum
@@ -104,8 +112,16 @@ winner scores player1 player2 = todo
 --    Nothing
 
 selectSum :: Num a => [a] -> [Int] -> Maybe a
-selectSum xs is = todo
+selectSum xs []           = Just 0
+selectSum [] is           = Nothing
+selectSum xs is           = safeSum $ map (safeIndex xs) is
+  where
+    safeIndex :: [a] -> Int -> Maybe a
+    safeIndex list index = if index >= 0 && index < length list then Just (list!!index) else Nothing
 
+    safeSum :: Num a => [Maybe a] -> Maybe a
+    safeSum []       = Just 0
+    safeSum (x:rest) = x >>= \value -> fmap (+ value) (safeSum rest)
 ------------------------------------------------------------------------------
 -- Ex 4: Here is the Logger monad from the course material. Implement
 -- the operation countAndLog which produces the number of elements
@@ -138,7 +154,8 @@ instance Applicative Logger where
   (<*>) = ap
 
 countAndLog :: Show a => (a -> Bool) -> [a] -> Logger Int
-countAndLog = todo
+countAndLog check []       = Logger [] 0
+countAndLog check (x:rest) = if check x then countAndLog check rest >>= \y -> Logger [show x] (y + 1)  else countAndLog check rest
 
 ------------------------------------------------------------------------------
 -- Ex 5: You can find the Bank and BankOp code from the course
@@ -152,11 +169,14 @@ countAndLog = todo
 -- from Data.Map are available under the prefix Map.
 
 exampleBank :: Bank
-exampleBank = (Bank (Map.fromList [("harry",10),("cedric",7),("ginny",1)]))
+exampleBank = Bank (Map.fromList [("harry",10),("cedric",7),("ginny",1)])
 
 balance :: String -> BankOp Int
-balance accountName = todo
-
+balance accountName = BankOp $ \bank -> (returnBalance bank accountName, bank)
+  where
+    returnBalance :: Bank -> String -> Int
+    returnBalance (Bank records) name = case Map.lookup name records of Nothing -> 0
+                                                                        Just x  -> x
 ------------------------------------------------------------------------------
 -- Ex 6: Using the operations balance, withdrawOp and depositOp, and
 -- chaining (+>), implement the BankOp rob, which transfers all the
@@ -173,7 +193,7 @@ balance accountName = todo
 --     ==> ((),Bank (fromList [("cedric",7),("ginny",1),("harry",10)]))
 
 rob :: String -> String -> BankOp ()
-rob from to = todo
+rob from to = balance from +> withdrawOp from +> depositOp to
 
 ------------------------------------------------------------------------------
 -- Ex 7: using the State monad, write the operation `update` that first
@@ -185,7 +205,7 @@ rob from to = todo
 --    ==> ((),7)
 
 update :: State Int ()
-update = todo
+update = state (\x -> ((), x*2+1))
 
 ------------------------------------------------------------------------------
 -- Ex 8: Checking that parentheses are balanced with the State monad.
@@ -213,7 +233,12 @@ update = todo
 --   parensMatch "(()))("      ==> False
 
 paren :: Char -> State Int ()
-paren = todo
+paren x = do
+  old_value <- get
+  if old_value == -1 then put (-1) else case x of '('       -> put (old_value + 1)
+                                                  ')'       -> put (old_value - 1)
+                                                  otherwise -> put old_value
+
 
 parensMatch :: String -> Bool
 parensMatch s = count == 0
@@ -244,7 +269,13 @@ parensMatch s = count == 0
 -- PS. The order of the list of pairs doesn't matter
 
 count :: Eq a => a -> State [(a,Int)] ()
-count x = todo
+count x = do
+  current_count <- get
+  let keys = map fst current_count
+  if x `elem` keys then put (addToCount x current_count) else put ((x, 1):current_count)
+    where
+      addToCount :: Eq a => a -> [(a, Int)] -> [(a, Int)]
+      addToCount x list = map (\pair -> if fst pair == x then (fst pair, snd pair + 1) else pair) list
 
 ------------------------------------------------------------------------------
 -- Ex 10: Implement the operation occurrences, which
@@ -266,4 +297,5 @@ count x = todo
 --    ==> (4,[(2,1),(3,1),(4,1),(7,1)])
 
 occurrences :: (Eq a) => [a] -> State [(a,Int)] Int
-occurrences xs = todo
+occurrences []     = state $ \list -> (length list, list)
+occurrences (x:xs) = count x >> occurrences xs
