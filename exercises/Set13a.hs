@@ -1,4 +1,5 @@
 {-# OPTIONS_GHC -Wno-noncanonical-monad-instances #-} -- this silences an uninteresting warning
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Use head" #-}
 
 module Set13a where
@@ -296,4 +297,5 @@ count x = do
 --    ==> (4,[(2,1),(3,1),(4,1),(7,1)])
 
 occurrences :: (Eq a) => [a] -> State [(a,Int)] Int
-occurrences xs = todo
+occurrences []     = state $ \list -> (length list, list)
+occurrences (x:xs) = count x >> occurrences xs
