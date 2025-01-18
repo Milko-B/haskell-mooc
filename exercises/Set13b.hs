@@ -144,14 +144,25 @@ maze1 = [("Entry",["Pit","Corridor 1"])
 
 
 visit :: [(String,[String])] -> String -> State [String] ()
-visit maze place = todo
+visit maze place = state $ \path -> if place `elem` path 
+  then return path
+  else case length options of
+    0 -> return (place:path)
+    n -> runState (visitMultiple maze options) (place:path)
+    where
+      options :: [String]
+      options = snd $ head $ filter ((== place).fst) maze
+
+      visitMultiple :: [(String,[String])] -> [String] -> State [String] ()
+      visitMultiple maze []              = state $ \path -> return path
+      visitMultiple maze (next:rest)     = visit maze next >> visitMultiple maze rest
 
 -- Now you should be able to implement path using visit. If you run
 -- visit on a place using an empty state, you'll get a state that
 -- lists all the places that are reachable from the starting place.
 
 path :: [(String,[String])] -> String -> String -> Bool
-path maze place1 place2 = todo
+path maze place1 place2 = place2 `elem` (snd $ runState (visit maze place1) [])
 
 ------------------------------------------------------------------------------
 -- Ex 4: Given two lists, ks and ns, find numbers i and j from ks,
