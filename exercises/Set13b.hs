@@ -1,4 +1,6 @@
 {-# OPTIONS_GHC -Wno-noncanonical-monad-instances #-} -- this silences an uninteresting warning
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Use const" #-}
 
 module Set13b where
 
@@ -42,7 +44,7 @@ test = do
   return (x<10)
 
 ifM :: Monad m => m Bool -> m a -> m a -> m a
-ifM opBool opThen opElse = todo
+ifM opBool opThen opElse = opBool >>= \bool -> if bool then opThen else opElse
 
 ------------------------------------------------------------------------------
 -- Ex 2: the standard library function Control.Monad.mapM defines a
@@ -84,7 +86,7 @@ perhapsIncrement True x = modify (+x)
 perhapsIncrement False _ = return ()
 
 mapM2 :: Monad m => (a -> b -> m c) -> [a] -> [b] -> m [c]
-mapM2 op xs ys = todo
+mapM2 op xs ys = mapM (uncurry op) (zip xs ys)
 
 ------------------------------------------------------------------------------
 -- Ex 3: Finding paths.
@@ -142,14 +144,25 @@ maze1 = [("Entry",["Pit","Corridor 1"])
 
 
 visit :: [(String,[String])] -> String -> State [String] ()
-visit maze place = todo
+visit maze place = state $ \path -> if place `elem` path 
+  then return path
+  else case length options of
+    0 -> return (place:path)
+    n -> runState (visitMultiple maze options) (place:path)
+    where
+      options :: [String]
+      options = snd $ head $ filter ((== place).fst) maze
+
+      visitMultiple :: [(String,[String])] -> [String] -> State [String] ()
+      visitMultiple maze []              = state $ \path -> return path
+      visitMultiple maze (next:rest)     = visit maze next >> visitMultiple maze rest
 
 -- Now you should be able to implement path using visit. If you run
 -- visit on a place using an empty state, you'll get a state that
 -- lists all the places that are reachable from the starting place.
 
 path :: [(String,[String])] -> String -> String -> Bool
-path maze place1 place2 = todo
+path maze place1 place2 = place2 `elem` (snd $ runState (visit maze place1) [])
 
 ------------------------------------------------------------------------------
 -- Ex 4: Given two lists, ks and ns, find numbers i and j from ks,
@@ -165,7 +178,7 @@ path maze place1 place2 = todo
 -- PS. The tests don't care about the order of results.
 
 findSum2 :: [Int] -> [Int] -> [(Int,Int,Int)]
-findSum2 ks ns = todo
+findSum2 ks ns = [(x,y,n) | x <- ks, y <- ks, n <- ns, x+y == n]
 
 ------------------------------------------------------------------------------
 -- Ex 5: compute all possible sums of elements from the given
@@ -186,7 +199,8 @@ findSum2 ks ns = todo
 --     ==> [7,3,5,1,6,2,4,0]
 
 allSums :: [Int] -> [Int]
-allSums xs = todo
+allSums []     = [0]
+allSums (x:xs) = allSums xs >>= \y -> (y+x):[y]
 
 ------------------------------------------------------------------------------
 -- Ex 6: the standard library defines the function
@@ -216,7 +230,7 @@ sumBounded :: Int -> [Int] -> Maybe Int
 sumBounded k xs = foldM (f1 k) 0 xs
 
 f1 :: Int -> Int -> Int -> Maybe Int
-f1 k acc x = todo
+f1 k acc x = if x + acc > k then Nothing else Just (acc + x)
 
 -- sumNotTwice computes the sum of a list, but counts only the first
 -- occurrence of each value.
@@ -230,7 +244,7 @@ sumNotTwice :: [Int] -> Int
 sumNotTwice xs = fst $ runState (foldM f2 0 xs) []
 
 f2 :: Int -> Int -> State [Int] Int
-f2 acc x = todo
+f2 acc x = state $ \seen -> if x `elem` seen then (sum seen, seen) else (sum (x:seen), x:seen) 
 
 ------------------------------------------------------------------------------
 -- Ex 7: here is the Result type from Set12. Implement a Monad Result
@@ -255,8 +269,10 @@ data Result a = MkResult a | NoResult | Failure String deriving (Show,Eq)
 
 instance Functor Result where
   -- The same Functor instance you used in Set12 works here.
-  fmap = todo
-
+  fmap f NoResult           = NoResult
+  fmap f (Failure error)    = Failure error
+  fmap f (MkResult result)  = MkResult $ f result
+  
 -- This is an Applicative instance that works for any monad, you
 -- can just ignore it for now. We'll get back to Applicative later.
 instance Applicative Result where
@@ -265,8 +281,10 @@ instance Applicative Result where
 
 instance Monad Result where
   -- implement return and >>=
-  return = todo
-  (>>=) = todo
+  return x = MkResult x
+  (>>=) (MkResult a) f  = f a
+  (>>=) NoResult f      = NoResult
+  (>>=) (Failure m) f   = Failure m
 
 ------------------------------------------------------------------------------
 -- Ex 8: Here is the type SL that combines the State and Logger
@@ -314,7 +332,12 @@ modifySL f = SL (\s -> ((),f s,[]))
 
 instance Functor SL where
   -- implement fmap
-  fmap = todo
+  fmap f (SL g) = SL h
+   where
+    h n = 
+      let (x, state, log) = g n
+      in  (f x, state, log)
+    
 
 -- This is an Applicative instance that works for any monad, you
 -- can just ignore it for now. We'll get back to Applicative later.
@@ -324,9 +347,16 @@ instance Applicative SL where
 
 instance Monad SL where
   -- implement return and >>=
-  return = todo
-  (>>=) = todo
-
+  return x = SL (\n -> (x, n, []))
+  (>>=) (SL g) f = SL h
+    where 
+      h n =
+        let 
+          (x, m, logx) = g n 
+          SL h'     = f x
+          (y, k, logy) = h' m
+        in
+          (y, k, logx ++ logy)
 ------------------------------------------------------------------------------
 -- Ex 9: Implement the operation mkCounter that produces the IO operations
 -- inc :: IO () and get :: IO Int. These operations should work like this:
@@ -353,4 +383,8 @@ instance Monad SL where
 --  4
 
 mkCounter :: IO (IO (), IO Int)
-mkCounter = todo
+mkCounter = do
+    counter <- newIORef 0
+    let inc = modifyIORef counter (+1)
+    let get = readIORef counter
+    return (inc, get)
